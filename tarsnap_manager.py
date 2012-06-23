@@ -22,18 +22,34 @@ def _run(options, args):
 	else:
 		subprocess.call(args)
 
+def _append_required_args(options, args):
+	args.extend(('--keyfile', options.key_file))
+	args.extend(('--cachedir', options.cache_dir))
+
+def _append_filename_arg(filename, args):
+	args.extend(('-f', filename))
+
 def _make_archive(options, paths, filename):
-	pass
+	args = ['tarsnap']
+	_append_required_args(options, args)
+	args.append('-c')
+	_append_filename_arg(filename, args)
+	args.extend(paths)
+	_run(options, args)
 
 def _delete_archive(options, filename):
-	pass
+	args = ['tarsnap']
+	_append_required_args(options, args)
+	args.append('-d')
+	_append_filename_arg(filename, args)
+	_run(options, args)
 
 def _make_daily_archive(options, paths, d):
 	filename = _get_daily_filename(options.archive_name, d)
 	_make_archive(options, paths, filename)
 
 def _make_weekly_archive(options, paths, d):
-	if d.isoweekday() == options.weekday:
+	if options.num_weeks and (d.isoweekday() == options.weekday):
 		filename = _get_weekly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
 		# Delete the oldest weekly backup if it exists.
@@ -55,7 +71,7 @@ def _subtract_months(d, num_months):
 	return prev_d
 
 def _make_monthly_archive(options, paths, d):
-	if (d.isoweekday() == options.weekday) and (d.day <= 7):
+	if options.num_months and (d.isoweekday() == options.weekday) and (d.day <= 7):
 		filename = _get_monthly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
 		# Delete the oldest monthly backup if it exists.
@@ -69,16 +85,21 @@ def backup(options, paths):
 	_make_weekly_archive(options, paths, d)
 	_make_monthly_archive(options, paths, d)
 
+_DEFAULT_CACHE_DIR = '/usr/tarsnap-cache'
+
 def _parse_args(args):
 	# Parse the arguments.
 	parser = optparse.OptionParser()
 	parser.add_option('--key_file',
 		help='The key file for encryption.')
+	parser.add_option('--cache_dir',
+		default=_DEFAULT_CACHE_DIR,
+		help='The cache directory.')
 	parser.add_option('--dry_run',
 		action='store_true',
 		default=False,
 		help='Whether a dry run should be performed.')
-	parser.add_option('--archive_name', dest='archive_name',
+	parser.add_option('--archive_name',
 		help='Name of the archive that is prefixed to each filename.')
 	parser.add_option('--weekday',
 		type='int',
@@ -88,11 +109,11 @@ def _parse_args(args):
 		type='int',
 		default=3,
 		help='The number of consecutive daily backups to store.')
-	parser.add_option('--num_weeks', dest='num_weeks',
+	parser.add_option('--num_weeks',
 		type='int',
 		default=2,
 		help='The number of consecutive weekly backups to store.')
-	parser.add_option('--num_months', dest='num_months',
+	parser.add_option('--num_months',
 		type='int',
 		default=1,
 		help='The number of consecutive monthly backups to store.')

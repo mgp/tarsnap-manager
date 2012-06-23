@@ -88,6 +88,37 @@ class TarsnapManagerTestCase(unittest.TestCase):
 		options, args = tarsnap_manager._parse_args(args)
 		self.assertTrue(options.dry_run)
 
+	def _fake_run(self, options, args):
+		self.run_cmd = ' '.join(args)
+
+	def test_make_archive(self):
+		args = self._make_args_array(self._get_valid_args_map())
+		options, args = tarsnap_manager._parse_args(args)
+
+		tarsnap_manager._run = self._fake_run
+		paths = ('/path1', '/path2')
+		filename = 'filename_value'
+		tarsnap_manager._make_archive(options, paths, filename)
+		expected_cmd = 'tarsnap --keyfile %s --cachedir %s -c -f %s %s %s' % (
+			TarsnapManagerTestCase._DEFAULT_KEY_FILE,
+			tarsnap_manager._DEFAULT_CACHE_DIR,
+			filename,
+			paths[0], paths[1])
+		self.assertEquals(expected_cmd, self.run_cmd)
+	
+	def test_delete_archive(self):
+		args = self._make_args_array(self._get_valid_args_map())
+		options, args = tarsnap_manager._parse_args(args)
+
+		tarsnap_manager._run = self._fake_run
+		filename = 'filename_value'
+		tarsnap_manager._delete_archive(options, filename)
+		expected_cmd = 'tarsnap --keyfile %s --cachedir %s -d -f %s' % (
+			TarsnapManagerTestCase._DEFAULT_KEY_FILE,
+			tarsnap_manager._DEFAULT_CACHE_DIR,
+			filename)
+		self.assertEquals(expected_cmd, self.run_cmd)
+
 	def test_invalid_args(self):
 		args = self._get_valid_args_map()
 		del args['key_file']
