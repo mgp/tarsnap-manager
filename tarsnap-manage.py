@@ -1,18 +1,19 @@
 import optparse
 import subprocess
 import time
+from datetime import timedelta
 
-def _get_filename(archive_name, period, time):
-	return '%s_%s_%s-%s-%s' % (archive_name, period, time.tm_year, time.tm_mon, time.tm_day)
+def _get_filename(archive_name, period, d):
+	return '%s_%s_%s' % (archive_name, period, d.isoformat())
 
-def _get_daily_filename(archive_name, tm):
-	return get_filename(archive_name, 'daily', tm)
+def _get_daily_filename(archive_name, d):
+	return get_filename(archive_name, 'daily', d)
 
-def _get_weekly_filename(archive_name, tm):
-	return get_filename(archive_name, 'weekly', tm)
+def _get_weekly_filename(archive_name, d):
+	return get_filename(archive_name, 'weekly', d)
 
-def _get_monthly_filename(archive_name, tm):
-	return get_filename(archive_name, 'monthly', tm)
+def _get_monthly_filename(archive_name, d):
+	return get_filename(archive_name, 'monthly', d)
 
 def _run(options, args):
 	if options.dry_run:
@@ -26,27 +27,46 @@ def _make_archive(options, paths, filename):
 def _delete_archive(options, filename):
 	pass
 
-def _make_daily_archive(options, paths, tm):
-	filename = _get_daily_filename(options.archive_name, tm)
+def _make_daily_archive(options, paths, d):
+	filename = _get_daily_filename(options.archive_name, d)
 	_make_archive(options, paths, filename)
 
-def _make_weekly_archive(options, paths, tm):
-	if tm.tm_wday() == options.weekday:
-		filename = _get_weekly_filename(options.archive_name, tm)
+def _make_weekly_archive(options, paths, d):
+	if d.isoweekday() == options.weekday:
+		filename = _get_weekly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
-		# TODO: Delete oldest weekly backup if necessary.
+		# Delete the oldest weekly backup if it exists.
+		td = timedelta(weeks=options.num_weeks)
+		oldest_date = d - td
+		oldest_filename = _get_weekly_filename(options.archive_name, oldest_date)
+		_delete_archive(options, oldest_filename)
 
-def _make_monthly_archive(options, paths, tm):
-	if (tm.tm_wday() == options.weekday) and (tm.mday <= 7):
-		filename = _get_monthly_filename(options.archive_name, tm)
+def _subtract_months(d, num_months):
+	one_week = timedelta(weeks=1)
+	prev_d = d - one_week
+	months_counted = 0
+	while True:
+		prev_d -= one_week
+		if d.isoweekday() <= 7:
+			months_counted += 1
+			if months_counted == num_months:
+				break
+	return prev_d
+
+def _make_monthly_archive(options, paths, d):
+	if (d.isoweekday() == options.weekday) and (d.day <= 7):
+		filename = _get_monthly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
-		# TODO: Delete oldest monthly backup if necessary.
+		# Delete the oldest monthly backup if it exists.
+		oldest_date = _subtract_months(d, options.num_months)
+		oldest_filename = _get_monthly_filename(options.archive_name, oldest_date)
+		_delete_archive(options, oldest_filename)
 
 def backup(options, paths):
-	tm = time.gmtime()
-	_make_daily_archive(options, paths, tm)
-	_make_weekly_archive(options, paths, tm)
-	_make_monthly_archive(options, paths, tm)
+	d = date.today()
+	_make_daily_archive(options, paths, d)
+	_make_weekly_archive(options, paths, d)
+	_make_monthly_archive(options, paths, d)
 
 def _parse_args():
 	parser = optparse.OptionParser()
