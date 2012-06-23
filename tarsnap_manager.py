@@ -19,8 +19,6 @@ def _run(options, args):
 	if options.dry_run:
 		s = ' '.join(args)
 		print s
-		# Return for unit testing.
-		return s
 	else:
 		subprocess.call(args)
 
@@ -71,16 +69,50 @@ def backup(options, paths):
 	_make_weekly_archive(options, paths, d)
 	_make_monthly_archive(options, paths, d)
 
-def _parse_args():
+def _parse_args(args):
+	# Parse the arguments.
 	parser = optparse.OptionParser()
-	parser.add_option('--key_file', 'The key file for encryption.')
-	parser.add_option('--dry_run', 'Whether a dry run should be performed.')
-	parser.add_option('--archive_name', 'Name of the archive that is archive_nameed to each filename.')
-	parser.add_option('--weekday', 'The day on which to do daily and weekly backups, where Monday is 0 and Sunday is 6.')
-	parser.add_option('--num_days', 'The number of consecutive daily backups to store.')
-	parser.add_option('--num_weeks', 'The number of consecutive weekly backups to store.')
-	parser.add_option('--num_months', 'The number of consecutive monthly backups to store.')
-	return parser.parse_args()
+	parser.add_option('--key_file',
+		help='The key file for encryption.')
+	parser.add_option('--dry_run',
+		action='store_true',
+		default=False,
+		help='Whether a dry run should be performed.')
+	parser.add_option('--archive_name', dest='archive_name',
+		help='Name of the archive that is prefixed to each filename.')
+	parser.add_option('--weekday',
+		type='int',
+		default=0,
+		help='The day on which to do daily and weekly backups, where Monday is 0 and Sunday is 6.')
+	parser.add_option('--num_days',
+		type='int',
+		default=3,
+		help='The number of consecutive daily backups to store.')
+	parser.add_option('--num_weeks', dest='num_weeks',
+		type='int',
+		default=2,
+		help='The number of consecutive weekly backups to store.')
+	parser.add_option('--num_months', dest='num_months',
+		type='int',
+		default=1,
+		help='The number of consecutive monthly backups to store.')
+	options, args = parser.parse_args(args)
+
+	# Validate the arguments.
+	if not options.key_file:
+		parser.error('option --key_file must be specified')
+	if not options.archive_name:
+		parser.error('option --archive_name must be specified')
+	if (options.weekday < 0) or (options.weekday > 6):
+		parser.error('option --weekday must be >= 0 and <= 6')
+	if options.num_days <= 0:
+		parser.error('option --num_days must be > 0')
+	if options.num_weeks < 0:
+		parser.error('option --num_weeks must be >= 0')
+	if options.num_months < 0:
+		parser.error('option --num_months must be >= 0')
+	
+	return options, args
 
 if __name__ == '__main__':
 	options, paths = _parse_args()

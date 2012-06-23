@@ -45,6 +45,86 @@ class TarsnapManagerTestCase(unittest.TestCase):
 		self.assertEquals(7, new_date.month)
 		self.assertEquals(1, new_date.day)
 
+	_DEFAULT_KEY_FILE = 'key_file_value'
+	_DEFAULT_ARCHIVE_NAME = 'archive_name_value'
+	_DEFAULT_WEEKDAY = 4
+	_DEFAULT_NUM_DAYS = 5
+	_DEFAULT_NUM_WEEKS = 3
+	_DEFAULT_NUM_MONTHS = 2
+
+	def _get_valid_args_map(self):
+		args = {}
+		args['key_file'] = TarsnapManagerTestCase._DEFAULT_KEY_FILE
+		args['archive_name'] = TarsnapManagerTestCase._DEFAULT_ARCHIVE_NAME
+		args['weekday'] = TarsnapManagerTestCase._DEFAULT_WEEKDAY
+		args['num_days'] = TarsnapManagerTestCase._DEFAULT_NUM_DAYS
+		args['num_weeks'] = TarsnapManagerTestCase._DEFAULT_NUM_WEEKS
+		args['num_months'] = TarsnapManagerTestCase._DEFAULT_NUM_MONTHS
+		return args
+	
+	def _make_args_array(self, args):
+		return ['--%s=%s' % (key, value) for key, value in args.iteritems()]
+
+	def test_valid_args(self):
+		args = self._make_args_array(self._get_valid_args_map())
+		options, args = tarsnap_manager._parse_args(args)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_KEY_FILE,
+			options.key_file)
+		self.assertFalse(options.dry_run)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_ARCHIVE_NAME,
+			options.archive_name)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_WEEKDAY,
+			options.weekday)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_NUM_DAYS,
+			options.num_days)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_NUM_WEEKS,
+			options.num_weeks)
+		self.assertEquals(TarsnapManagerTestCase._DEFAULT_NUM_MONTHS,
+			options.num_months)
+
+		# Assert that the dry_run option is recognized.
+		args = self._make_args_array(self._get_valid_args_map())
+		args.append('--dry_run')
+		options, args = tarsnap_manager._parse_args(args)
+		self.assertTrue(options.dry_run)
+
+	def test_invalid_args(self):
+		args = self._get_valid_args_map()
+		del args['key_file']
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['archive_name'] = ''
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['weekday'] = -1
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['weekday'] = 7
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['num_days'] = 0
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['num_weeks'] = -1
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+		args = self._get_valid_args_map()
+		args['num_months'] = -1
+		with self.assertRaises(SystemExit):
+			tarsnap_manager._parse_args(self._make_args_array(args))
+
+
 if __name__ == '__main__':
 	unittest.main()
 
