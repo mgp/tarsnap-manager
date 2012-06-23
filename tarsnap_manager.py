@@ -104,7 +104,7 @@ def _parse_args(args):
 	parser.add_option('--weekday',
 		type='int',
 		default=0,
-		help='The day on which to do daily and weekly backups, where Monday is 0 and Sunday is 6.')
+		help='The day on which to do daily and weekly backups, where Monday is 1 and Sunday is 7.')
 	parser.add_option('--num_days',
 		type='int',
 		default=3,
@@ -124,8 +124,8 @@ def _parse_args(args):
 		parser.error('option --key_file must be specified')
 	if not options.archive_name:
 		parser.error('option --archive_name must be specified')
-	if (options.weekday < 0) or (options.weekday > 6):
-		parser.error('option --weekday must be >= 0 and <= 6')
+	if (options.weekday < 1) or (options.weekday > 7):
+		parser.error('option --weekday must be >= 1 and <= 7')
 	if options.num_days <= 0:
 		parser.error('option --num_days must be > 0')
 	if options.num_weeks < 0:
