@@ -1,7 +1,7 @@
 import optparse
 import subprocess
 import time
-from datetime import timedelta
+from datetime import date, timedelta
 
 def _get_filename(archive_name, period, d):
 	return '%s_%s_%s' % (archive_name, period, d.isoformat())
@@ -17,7 +17,10 @@ def _get_monthly_filename(archive_name, d):
 
 def _run(options, args):
 	if options.dry_run:
-		print ' '.join(args)
+		s = ' '.join(args)
+		print s
+		# Return for unit testing.
+		return s
 	else:
 		subprocess.call(args)
 
@@ -43,7 +46,7 @@ def _make_weekly_archive(options, paths, d):
 
 def _subtract_months(d, num_months):
 	one_week = timedelta(weeks=1)
-	prev_d = d - one_week
+	prev_d = d
 	months_counted = 0
 	while True:
 		prev_d -= one_week
