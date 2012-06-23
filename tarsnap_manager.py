@@ -7,13 +7,13 @@ def _get_filename(archive_name, period, d):
 	return '%s_%s_%s' % (archive_name, period, d.isoformat())
 
 def _get_daily_filename(archive_name, d):
-	return get_filename(archive_name, 'daily', d)
+	return _get_filename(archive_name, 'daily', d)
 
 def _get_weekly_filename(archive_name, d):
-	return get_filename(archive_name, 'weekly', d)
+	return _get_filename(archive_name, 'weekly', d)
 
 def _get_monthly_filename(archive_name, d):
-	return get_filename(archive_name, 'monthly', d)
+	return _get_filename(archive_name, 'monthly', d)
 
 def _run(options, args):
 	if options.dry_run:
@@ -50,7 +50,7 @@ def _subtract_months(d, num_months):
 	months_counted = 0
 	while True:
 		prev_d -= one_week
-		if d.isoweekday() <= 7:
+		if prev_d.day <= 7:
 			months_counted += 1
 			if months_counted == num_months:
 				break
