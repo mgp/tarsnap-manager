@@ -79,7 +79,7 @@ def _make_monthly_archive(options, paths, d):
 		oldest_filename = _get_monthly_filename(options.archive_name, oldest_date)
 		_delete_archive(options, oldest_filename)
 
-def backup(options, paths):
+def _backup(options, paths):
 	d = date.today()
 	_make_daily_archive(options, paths, d)
 	_make_weekly_archive(options, paths, d)
@@ -137,5 +137,5 @@ def _parse_args(args):
 
 if __name__ == '__main__':
 	options, paths = _parse_args()
-	backup(options, paths)
+	_backup(options, paths)
 
