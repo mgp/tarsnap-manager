@@ -70,6 +70,7 @@ class TarsnapManagerTestCase(unittest.TestCase):
 		options, args = tarsnap_manager._parse_args(args)
 		self.assertEquals(_DEFAULT_KEY_FILE, options.key_file)
 		self.assertFalse(options.dry_run)
+		self.assertFalse(options.skip_delete)
 		self.assertEquals(_DEFAULT_ARCHIVE_NAME, options.archive_name)
 		self.assertEquals(_DEFAULT_WEEKDAY, options.weekday)
 		self.assertEquals(_DEFAULT_NUM_DAYS, options.num_days)
@@ -79,8 +80,10 @@ class TarsnapManagerTestCase(unittest.TestCase):
 		# Assert that the dry_run option is recognized.
 		args = _make_args_array(_get_valid_args_map())
 		args.append('--dry_run')
+		args.append('--skip_delete')
 		options, args = tarsnap_manager._parse_args(args)
 		self.assertTrue(options.dry_run)
+		self.assertTrue(options.skip_delete)
 
 	def test_invalid_args(self):
 		args = _get_valid_args_map()
@@ -129,7 +132,10 @@ class MakeDeleteArchiveTestCase(unittest.TestCase):
 		self.run_cmd = None
 
 		self.filename = 'filename_value'
-	
+		# Create the options.
+		args = _make_args_array(_get_valid_args_map())
+		self.options, args = tarsnap_manager._parse_args(args)
+
 	def tearDown(self):
 		tarsnap_manager._run = self.prev_run
 
@@ -137,11 +143,8 @@ class MakeDeleteArchiveTestCase(unittest.TestCase):
 		self.run_cmd = ' '.join(args)
 
 	def test_make_archive(self):
-		args = _make_args_array(_get_valid_args_map())
-		options, args = tarsnap_manager._parse_args(args)
-
 		paths = ('/path1', '/path2')
-		tarsnap_manager._make_archive(options, paths, self.filename)
+		tarsnap_manager._make_archive(self.options, paths, self.filename)
 		expected_cmd = 'tarsnap --keyfile %s --cachedir %s -c -f %s %s %s' % (
 			_DEFAULT_KEY_FILE,
 			tarsnap_manager._DEFAULT_CACHE_DIR,
@@ -150,10 +153,7 @@ class MakeDeleteArchiveTestCase(unittest.TestCase):
 		self.assertEquals(expected_cmd, self.run_cmd)
 	
 	def test_delete_archive(self):
-		args = _make_args_array(_get_valid_args_map())
-		options, args = tarsnap_manager._parse_args(args)
-
-		tarsnap_manager._delete_archive(options, self.filename)
+		tarsnap_manager._delete_archive(self.options, self.filename)
 		expected_cmd = 'tarsnap --keyfile %s --cachedir %s -d -f %s' % (
 			_DEFAULT_KEY_FILE,
 			tarsnap_manager._DEFAULT_CACHE_DIR,
@@ -177,6 +177,10 @@ class WeeklyMonthlyArchiveTestCase(unittest.TestCase):
 		self.d = date(2012, 2, 3)
 		self.paths = ('/path1', '/path2')
 		self.archive_name = 'foo'
+		# Create the options.
+		args = _make_args_array(_get_valid_args_map())
+		self.options, args = tarsnap_manager._parse_args(args)
+		self.options.archive_name = self.archive_name
 	
 	def tearDown(self):
 		tarsnap_manager._make_archive = self.prev_make_archive
@@ -189,68 +193,66 @@ class WeeklyMonthlyArchiveTestCase(unittest.TestCase):
 		self.delete_archive_filename = filename
 
 	def test_make_weekly_archive(self):
-		args = _make_args_array(_get_valid_args_map())
-		options, args = tarsnap_manager._parse_args(args)
-		options.archive_name = 	self.archive_name
-
 		# Do not write when Friday but num_weeks is 0.
-		options.num_weeks = 0
-		options.weekday = 5
-		tarsnap_manager._make_weekly_archive(options, self.paths, self.d)
+		self.options.num_weeks = 0
+		self.options.weekday = 5
+		tarsnap_manager._make_weekly_archive(self.options, self.paths, self.d)
 		self.assertIsNone(self.make_archive_filename)
 		self.assertIsNone(self.delete_archive_filename)
 
 		# Do not write when num_weeks > 0 but not right weekday.
-		options.num_weeks = 2
-		options.weekday = 6
-		tarsnap_manager._make_weekly_archive(options, self.paths, self.d)
+		self.options.num_weeks = 2
+		self.options.weekday = 6
+		tarsnap_manager._make_weekly_archive(self.options, self.paths, self.d)
 		self.assertIsNone(self.make_archive_filename)
 		self.assertIsNone(self.delete_archive_filename)
 
-		# Write when num_weeks > 0 and also Friday.
-		options.num_weeks = 2
-		options.weekday = 5
-		tarsnap_manager._make_weekly_archive(options, self.paths, self.d)
+		# Write when num_weeks > 0 and also Friday, but skipping delete.
+		self.options.num_weeks = 2
+		self.options.weekday = 5
+		self.options.skip_delete = True
+		tarsnap_manager._make_weekly_archive(self.options, self.paths, self.d)
+		self.assertEquals('foo_weekly_2012-02-03', self.make_archive_filename)
+		self.assertIsNone(self.delete_archive_filename)
+
+		# Write when num_weeks > 0 and also Friday, and also delete.
+		self.options.skip_delete = False
+		tarsnap_manager._make_weekly_archive(self.options, self.paths, self.d)
 		self.assertEquals('foo_weekly_2012-02-03', self.make_archive_filename)
 		self.assertEquals('foo_weekly_2012-01-20', self.delete_archive_filename)
 	
 	def test_make_monthly_archive(self):
-		args = _make_args_array(_get_valid_args_map())
-		options, args = tarsnap_manager._parse_args(args)
-
-		# February 3 2012 is a Friday.
-		d = date(2012, 2, 3)
-		paths = ('/path1', '/path2')
-		options.archive_name = 'foo'
-
-		tarsnap_manager._make_archive = self._fake_make_archive
-		tarsnap_manager._delete_archive = self._fake_delete_archive
-		self.make_archive_filename = None
-		self.delete_archive_filename = None
-
 		# Do not write when the first Friday but num_months is 0.
-		options.num_months = 0
-		options.weekday = 5
-		tarsnap_manager._make_monthly_archive(options, paths, d)
+		self.options.num_months = 0
+		self.options.weekday = 5
+		tarsnap_manager._make_monthly_archive(self.options, self.paths, self.d)
 		self.assertIsNone(self.make_archive_filename)
 		self.assertIsNone(self.delete_archive_filename)
 
 		# Do not write when num_months > 0 and first week but not right weekday.
-		options.num_months = 2
-		options.weekday = 6
-		tarsnap_manager._make_monthly_archive(options, paths, d)
+		self.options.num_months = 2
+		self.options.weekday = 6
+		tarsnap_manager._make_monthly_archive(self.options, self.paths, self.d)
 		self.assertIsNone(self.make_archive_filename)
 		self.assertIsNone(self.delete_archive_filename)
 		
 		# Do not write when num_months > 0 and Friday but not first week.
-		options.num_months = 2
-		options.weekday = 5
-		tarsnap_manager._make_monthly_archive(options, paths, date(2012, 2, 10))
+		self.options.num_months = 2
+		self.options.weekday = 5
+		tarsnap_manager._make_monthly_archive(
+			self.options, self.paths, date(2012, 2, 10))
 		self.assertIsNone(self.make_archive_filename)
 		self.assertIsNone(self.delete_archive_filename)
 
-		# Write when num_months > 0 and also the first Friday.
-		tarsnap_manager._make_monthly_archive(options, paths, d)
+		# Write when num_months > 0 and also the first Friday, but skipping delete.
+		self.options.skip_delete = True
+		tarsnap_manager._make_monthly_archive(self.options, self.paths, self.d)
+		self.assertEquals('foo_monthly_2012-02-03', self.make_archive_filename)
+		self.assertIsNone(self.delete_archive_filename)
+
+		# Write when num_months > 0 and also the first Friday, and also delete.
+		self.options.skip_delete = False
+		tarsnap_manager._make_monthly_archive(self.options, self.paths, self.d)
 		self.assertEquals('foo_monthly_2012-02-03', self.make_archive_filename)
 		self.assertEquals('foo_monthly_2011-12-02', self.delete_archive_filename)
 

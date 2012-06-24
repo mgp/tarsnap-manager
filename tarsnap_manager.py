@@ -52,11 +52,12 @@ def _make_weekly_archive(options, paths, d):
 	if options.num_weeks and (d.isoweekday() == options.weekday):
 		filename = _get_weekly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
-		# Delete the oldest weekly backup if it exists.
-		td = timedelta(weeks=options.num_weeks)
-		oldest_date = d - td
-		oldest_filename = _get_weekly_filename(options.archive_name, oldest_date)
-		_delete_archive(options, oldest_filename)
+		if not options.skip_delete:
+			# Delete the oldest weekly backup if it exists.
+			td = timedelta(weeks=options.num_weeks)
+			oldest_date = d - td
+			oldest_filename = _get_weekly_filename(options.archive_name, oldest_date)
+			_delete_archive(options, oldest_filename)
 
 def _subtract_months(d, num_months):
 	one_week = timedelta(weeks=1)
@@ -74,10 +75,11 @@ def _make_monthly_archive(options, paths, d):
 	if options.num_months and (d.isoweekday() == options.weekday) and (d.day <= 7):
 		filename = _get_monthly_filename(options.archive_name, d)
 		_make_archive(options, paths, filename)
-		# Delete the oldest monthly backup if it exists.
-		oldest_date = _subtract_months(d, options.num_months)
-		oldest_filename = _get_monthly_filename(options.archive_name, oldest_date)
-		_delete_archive(options, oldest_filename)
+		if not options.skip_delete:
+			# Delete the oldest monthly backup if it exists.
+			oldest_date = _subtract_months(d, options.num_months)
+			oldest_filename = _get_monthly_filename(options.archive_name, oldest_date)
+			_delete_archive(options, oldest_filename)
 
 def _backup(options, paths):
 	d = date.today()
@@ -99,6 +101,10 @@ def _parse_args(args):
 		action='store_true',
 		default=False,
 		help='Whether a dry run should be performed.')
+	parser.add_option('--skip_delete',
+		action='store_true',
+		default=False,
+		help='Whether the oldest archive should be deleted, useful if not permitted by the key.')
 	parser.add_option('--archive_name',
 		help='Name of the archive that is prefixed to each filename.')
 	parser.add_option('--weekday',
