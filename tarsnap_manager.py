@@ -110,7 +110,7 @@ def _parse_args(args):
 	parser.add_option('--weekday',
 		type='int',
 		default=0,
-		help='The day on which to do daily and weekly backups, where Monday is 1 and Sunday is 7.')
+		help='The day on which to do weekly and monthly backups, where Monday is 1 and Sunday is 7.')
 	parser.add_option('--num_days',
 		type='int',
 		default=3,
