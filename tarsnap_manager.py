@@ -1,5 +1,6 @@
 import optparse
 import subprocess
+import sys
 import time
 from datetime import date, timedelta
 
@@ -142,6 +143,6 @@ def _parse_args(args):
 	return options, args
 
 if __name__ == '__main__':
-	options, paths = _parse_args()
+	options, paths = _parse_args(sys.argv[1:])
 	_backup(options, paths)
 
